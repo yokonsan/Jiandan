@@ -12,6 +12,7 @@ from requests import ConnectionError
 
 
 def get_html(url):
+    """请求页面，返回响应"""
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:54.0) Gecko/20100101 Firefox/54.0'
     }
@@ -25,6 +26,9 @@ def get_html(url):
     return None
 
 def get_js_file():
+    """
+    正则匹配加密 js url
+    """
     base_url = 'http://jandan.net/ooxx/'
     html = get_html(base_url).text
     js_url = ''
@@ -39,12 +43,14 @@ def get_js_file():
     return js
 
 def get_salt(js):
+    """正则匹配 js 中的加密常量"""
     pattern = r'jandan_load_img.*?var c.*?"(.*?)"'
     salt = re.findall(pattern, js, re.S)[0]
     # print(salt)
     return salt
 
 def all_img_hash(page_url):
+    """请求页面，返回页面中所有图片 hash"""
     html = get_html(page_url).text
     doc = etree.HTML(html)
     img_hash = doc.xpath('//span[@class="img-hash"]/text()')
@@ -52,17 +58,22 @@ def all_img_hash(page_url):
     return img_hash
 
 def init_md5(str):
+    """封装 md5"""
     md5 = hashlib.md5()
     md5.update(str.encode('utf-8'))
     return md5.hexdigest()
 
 def decode_base64(data):
-    missing_padding = 4 - len(data) % 4
-    if missing_padding:
-        data += '=' * missing_padding
-    return base64.b64decode(data)
+    """封装 base64"""
+    return base64.b64decode(data + (4 - len(data) % 4) * '=')
 
 def simulation_js(img_hash, salt):
+    """
+    翻译 js 加密方式
+    :param img_hash: 图片 hash
+    :param salt: 加密常量
+    :return: 图片 url
+    """
     r = salt if salt else ''
     d = 0
     q = 4
@@ -105,6 +116,7 @@ def parse_hash(salt, page_url):
         yield simulation_js(i, salt)
 
 def download_img(dir_path, img_url):
+    """下载"""
     filename = img_url[-14:]
     img_content = get_html(img_url).content
     if not os.path.exists(dir_path):
